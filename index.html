@@ -131,7 +131,8 @@
         <div class="statement-header" style="text-align:center; margin-bottom:15px;">
           <h2>Account Statement</h2>
           <h4 id="printAccName" style="color:#2563eb; margin:5px 0;">Account: -</h4>
-          <p id="printDateRange" style="font-size:13px; margin:5px 0; color:#4b5563;">Period: -</p>
+          <p id="printAccDetails" style="font-size:13px; margin:3px 0; color:#4b5563; font-weight: bold;"></p>
+          <p id="printDateRange" style="font-size:12px; margin:3px 0; color:#6b7280;">Period: -</p>
         </div>
         <div style="overflow-x: auto;">
           <table class="report-table">
@@ -200,8 +201,17 @@
 <div id="addAccModal" class="modal" style="display:none;">
   <div class="card">
     <h3>Add Account</h3>
-    <input id="newAccName" placeholder="Name">
-    <input id="newAccBalance" type="number" placeholder="Balance">
+    <input id="newAccName" placeholder="Account Name (ডাকনাম)">
+    <input id="newAccNumber" placeholder="Account Number (অফিশিয়াল নম্বর)">
+    <select id="newAccType" style="width:100%; padding:12px; margin-top:10px; border-radius:10px; border:1px solid #ddd;">
+      <option value="Savings">Savings (সঞ্চয়ী অ্যাকাউন্ট)</option>
+      <option value="Fixed Deposit">Fixed Deposit (এফডিআর)</option>
+      <option value="Loan">Loan (ঋণ অ্যাকাউন্ট)</option>
+      <option value="Card">Card (ক্রেডিট/ডেবিট কার্ড)</option>
+      <option value="MFS">MFS (বিকাশ/রকেট/নগদ)</option>
+      <option value="Cash">Cash (নগদ তহবিল)</option>
+    </select>
+    <input id="newAccBalance" type="number" placeholder="Opening Balance">
     <button onclick="saveNewAccount()">Save</button>
     <button onclick="closeModal('addAccModal')" style="background:#6b7280; margin-top:5px;">Close</button>
   </div>
@@ -230,15 +240,12 @@
 <div id="transferModal" class="modal" style="display:none;">
   <div class="card">
     <h3>Fund Transfer</h3>
-    
     <label style="font-size: 12px; color:#4b5563; font-weight: bold;">From Account (উৎস):</label>
     <select id="transferFromAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;"></select>
-    
     <label style="font-size: 12px; color:#4b5563; font-weight: bold;">To Account (গন্তব্য):</label>
     <select id="transferToAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;"></select>
-    
-    <input id="transferAmount" type="number" placeholder="Amount (টাকার পরিমাণ)">
-    <input id="transferNote" placeholder="Note (বিবরণ)">
+    <input id="transferAmount" type="number" placeholder="Amount">
+    <input id="transferNote" placeholder="Note">
     <button onclick="processTransfer()">Confirm Transfer</button>
     <button onclick="closeModal('transferModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
   </div>
