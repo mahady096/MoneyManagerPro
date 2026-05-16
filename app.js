@@ -9,6 +9,7 @@ let allTransactions = [];
 
 let currentTransType = '';
 let currentEditingTransId = '';
+let currentEditingAccId = '';
 
 let myChart = null;
 
@@ -66,7 +67,8 @@ async function loadData() {
 }
 
 // ==========================
-// ACCOUNTS (DASHBOARD)
+// // ==========================
+// ACCOUNTS (DASHBOARD) - UPDATED FOR TOP-RIGHT CORNER BUTTONS
 // ==========================
 async function loadAccounts() {
   const user = auth.currentUser;
@@ -91,10 +93,18 @@ async function loadAccounts() {
       total += Number(data.balance);
       const selected = selectedSet.has(doc.id) ? 'selected' : '';
 
+      // স্ট্রাকচার পরিবর্তন করে টেক্সট ও বাটন আলাদা কন্টেইনারে নেওয়া হলো
       html += `
-      <div class="account-item ${selected}" id="acc-${doc.id}" onclick="toggleSelect('${doc.id}')">
-        <strong>${data.name}</strong>
-        <span>BDT ${Number(data.balance).toLocaleString()}</span>
+      <div class="account-item ${selected}" id="acc-${doc.id}">
+        <div class="account-actions no-print">
+          <button onclick="openEditAccModal('${doc.id}')" style="background:#6b7280;" title="Rename">✏️</button>
+          <button onclick="deleteAccount('${doc.id}')" style="background:#dc2626;" title="Delete">🗑️</button>
+        </div>
+        
+        <div onclick="toggleSelect('${doc.id}')" class="account-info-box">
+          <strong>${data.name}</strong>
+          <span>${Number(data.balance).toLocaleString()}</span>
+        </div>
       </div>
       `;
     }
@@ -154,6 +164,76 @@ async function saveNewAccount() {
     loadData();
   } catch (e) {
     alert(e.message);
+  }
+}
+
+// ==========================
+// RENAME & DELETE ACCOUNT FUNCTIONS
+// ==========================
+function openEditAccModal(id) {
+  const acc = accountsData.find(a => a.id === id);
+  if (!acc) return;
+  
+  currentEditingAccId = id;
+  document.getElementById('editAccCurrentName').innerText = `Current Name: ${acc.name}`;
+  document.getElementById('editAccNewName').value = acc.name;
+  document.getElementById('editAccModal').style.display = 'flex';
+}
+
+async function updateAccountName() {
+  const user = auth.currentUser;
+  const newName = document.getElementById('editAccNewName').value.trim();
+  
+  if (!newName) return alert("অনুগ্রহ করে একটি সঠিক নাম দিন");
+  
+  const oldAcc = accountsData.find(a => a.id === currentEditingAccId);
+  if (!oldAcc) return;
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const accRef = db.collection('users').doc(user.uid).collection('accounts').doc(currentEditingAccId);
+      transaction.update(accRef, { name: newName });
+
+      const transSnap = await db.collection('users').doc(user.uid).collection('transactions').where('accName', '==', oldAcc.name).get();
+      transSnap.docs.forEach(transDoc => {
+        transaction.update(transDoc.ref, { accName: newName });
+      });
+    });
+
+    alert("অ্যাকাউন্টের নাম সফলভাবে পরিবর্তন করা হয়েছে");
+    closeModal('editAccModal');
+    loadData();
+  } catch (e) {
+    alert("রিনেম করতে সমস্যা হয়েছে: " + e.message);
+  }
+}
+
+async function deleteAccount(id) {
+  const user = auth.currentUser;
+  const acc = accountsData.find(a => a.id === id);
+  if (!acc) return;
+
+  if (Number(acc.balance) !== 0) {
+    const proceed = confirm(`সতর্কবার্তা: এই অ্যাকাউন্টে এখনো BDT ${acc.balance} ব্যালেন্স রয়েছে! অ্যাকাউন্টটি ডিলিট করলে এই ব্যালেন্স হিসাব থেকে হারিয়ে যাবে। আপনি কি তবুও ডিলিট করতে চান?`);
+    if (!proceed) return;
+  } else {
+    const doubleCheck = confirm(`আপনি কি নিশ্চিতভাবে "${acc.name}" অ্যাকাউন্টটি ডিলিট করতে চান?`);
+    if (!doubleCheck) return;
+  }
+
+  try {
+    await db.collection('users').doc(user.uid).collection('accounts').doc(id).delete();
+    
+    const transSnap = await db.collection('users').doc(user.uid).collection('transactions').where('accName', '==', acc.name).get();
+    const batch = db.batch();
+    transSnap.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
+    alert("অ্যাকাউন্টটি সফলভাবে ডিলিট করা হয়েছে");
+    selectedSet.delete(id);
+    loadData();
+  } catch (e) {
+    alert("ডিলিট করতে সমস্যা হয়েছে: " + e.message);
   }
 }
 
@@ -267,31 +347,41 @@ async function processTransaction() {
 }
 
 // ==========================
-// TRANSFER LOGIC
+// UPDATED TRANSFER LOGIC (INCLUDES OUT OF WALLET)
 // ==========================
 function openTransferModal() {
-  if (selectedSet.size !== 1) return alert("একটি অ্যাকাউন্ট সিলেক্ট করুন");
-  const fromId = Array.from(selectedSet)[0];
-  const select = document.getElementById('transferToAcc');
-  select.innerHTML = '';
+  const fromSelect = document.getElementById('transferFromAcc');
+  const toSelect = document.getElementById('transferToAcc');
+  
+  fromSelect.innerHTML = '';
+  toSelect.innerHTML = '';
 
+  // সব অ্যাকাউন্ট (OUT OF WALLET সহ) ড্রপডাউন দুটিতেই প্রদর্শন করা হবে
   accountsData.forEach(acc => {
-    if (acc.id !== fromId) {
-      const opt = document.createElement('option');
-      opt.value = acc.id; opt.text = acc.name;
-      select.add(opt);
-    }
+    const opt1 = document.createElement('option');
+    opt1.value = acc.id; 
+    opt1.text = acc.name;
+    fromSelect.add(opt1);
+
+    const opt2 = document.createElement('option');
+    opt2.value = acc.id; 
+    opt2.text = acc.name;
+    toSelect.add(opt2);
   });
+
   document.getElementById('transferModal').style.display = 'flex';
 }
 
 async function processTransfer() {
   const amount = Number(document.getElementById('transferAmount').value);
   const note = document.getElementById('transferNote').value;
-  const fromId = Array.from(selectedSet)[0];
+  
+  const fromId = document.getElementById('transferFromAcc').value;
   const toId = document.getElementById('transferToAcc').value;
 
-  if (!amount || amount <= 0) return alert("সঠিক amount দিন");
+  if (!amount || amount <= 0) return alert("অনুগ্রহ করে সঠিক amount দিন");
+  if (fromId === toId) return alert("Source এবং Destination অ্যাকাউন্ট একই হতে পারবে না!");
+  
   const user = auth.currentUser;
 
   try {
@@ -301,6 +391,10 @@ async function processTransfer() {
     await db.runTransaction(async t => {
       const fromDoc = await t.get(fromRef);
       const toDoc = await t.get(toRef);
+
+      if (Number(fromDoc.data().balance) < amount) {
+        throw new Error("দুঃখিত! উৎস অ্যাকাউন্টে পর্যাপ্ত ব্যালেন্স নেই।");
+      }
 
       t.update(fromRef, { balance: Number(fromDoc.data().balance) - amount });
       t.update(toRef, { balance: Number(toDoc.data().balance) + amount });
@@ -322,8 +416,9 @@ async function processTransfer() {
       });
     });
 
-    alert("Transfer successful");
+    alert("স্থানান্তর সফল হয়েছে");
     closeModal('transferModal');
+    
     document.getElementById('transferAmount').value = '';
     document.getElementById('transferNote').value = '';
     loadData();
@@ -755,7 +850,7 @@ function printStatement() {
 }
 
 // ==========================
-// NEW: CRITICAL SECURE ACCOUNT DELETION LOGIC
+// CRITICAL SECURE ACCOUNT DELETION LOGIC
 // ==========================
 function triggerDeleteAccount() {
   const doubleCheck = confirm("আপনি কি নিশ্চিতভাবেই আপনার প্রোফাইল এবং ডাটাবেজের সমস্ত রেকর্ড চিরতরে ডিলিট করতে চান? এই কাজ আর ফিরিয়ে আনা যাবে না!");
@@ -773,29 +868,22 @@ async function executeAccountDeletion() {
   if (!password) return alert("নিরাপত্তার জন্য আপনার একাউন্টের পাসওয়ার্ডটি দিন");
 
   try {
-    // ফায়ারবেস সিকিউরিটি চেক: ক্রিশিয়াল অ্যাকশনের জন্য রি-অথেনটিকেশন বাধ্যতামূলক
     const credential = firebase.auth.EmailAuthProvider.credential(user.email, password);
     await user.reauthenticateWithCredential(credential);
 
-    // ১মে লেয়ার: ইউজারের ফায়ারস্টোর সাব-কালেকশনস খালি করা (Accounts)
     const accountsSnap = await db.collection('users').doc(user.uid).collection('accounts').get();
     const accPromises = accountsSnap.docs.map(doc => doc.ref.delete());
     await Promise.all(accPromises);
 
-    // ২য় লেয়ার: ট্রানজেকশন ডাটা ক্লিনিং (Transactions)
     const transSnap = await db.collection('users').doc(user.uid).collection('transactions').get();
     const transPromises = transSnap.docs.map(doc => doc.ref.delete());
     await Promise.all(transPromises);
 
-    // ৩য় লেয়ার: রেকারিং ডাটা ক্লিনিং (Recurring Instructions)
     const recurringSnap = await db.collection('users').doc(user.uid).collection('recurring').get();
     const recPromises = recurringSnap.docs.map(doc => doc.ref.delete());
     await Promise.all(recPromises);
 
-    // মেইন ইউজার ডকুমেন্ট ডিলিট করা
     await db.collection('users').doc(user.uid).delete();
-
-    // চূড়ান্ত লেয়ার: ফায়ারবেস অথেনটিকেশন প্রোফাইল থেকে ইউজার রিমুভ করা
     await user.delete();
 
     alert("আপনার অ্যাকাউন্ট এবং সমস্ত ডেটা সফলভাবে ডিলিট করা হয়েছে।");
@@ -839,6 +927,9 @@ function closeModal(id) {
   document.getElementById(id).style.display = 'none';
 }
 
+// ==========================
+// UTILITIES
+// ==========================
 function toggleSidebar(id) {
   const sb = document.getElementById(id);
   sb.style.width = sb.style.width === '250px' ? '0' : '250px';
