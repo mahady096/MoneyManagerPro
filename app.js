@@ -67,8 +67,7 @@ async function loadData() {
 }
 
 // ==========================
-// // ==========================
-// ACCOUNTS (DASHBOARD) - UPDATED FOR TOP-RIGHT CORNER BUTTONS
+// ACCOUNTS (DASHBOARD)
 // ==========================
 async function loadAccounts() {
   const user = auth.currentUser;
@@ -93,14 +92,12 @@ async function loadAccounts() {
       total += Number(data.balance);
       const selected = selectedSet.has(doc.id) ? 'selected' : '';
 
-      // স্ট্রাকচার পরিবর্তন করে টেক্সট ও বাটন আলাদা কন্টেইনারে নেওয়া হলো
       html += `
       <div class="account-item ${selected}" id="acc-${doc.id}">
         <div class="account-actions no-print">
           <button onclick="openEditAccModal('${doc.id}')" style="background:#6b7280;" title="Rename">✏️</button>
           <button onclick="deleteAccount('${doc.id}')" style="background:#dc2626;" title="Delete">🗑️</button>
         </div>
-        
         <div onclick="toggleSelect('${doc.id}')" class="account-info-box">
           <strong>${data.name}</strong>
           <span>${Number(data.balance).toLocaleString()}</span>
@@ -142,10 +139,12 @@ function updateSelectedSum() {
 }
 
 // ==========================
-// SAVE ACCOUNT
+// SAVE ACCOUNT (UPDATED)
 // ==========================
 async function saveNewAccount() {
   const name = document.getElementById('newAccName').value.trim();
+  const accNo = document.getElementById('newAccNumber').value.trim() || 'N/A';
+  const accType = document.getElementById('newAccType').value;
   const balance = Number(document.getElementById('newAccBalance').value);
   const user = auth.currentUser;
 
@@ -153,13 +152,16 @@ async function saveNewAccount() {
 
   try {
     await db.collection('users').doc(user.uid).collection('accounts').add({
-      name,
-      balance,
+      name: name,
+      accountNumber: accNo,
+      accountType: accType,
+      balance: balance,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     alert("অ্যাকাউন্ট তৈরি হয়েছে");
     closeModal('addAccModal');
     document.getElementById('newAccName').value = '';
+    document.getElementById('newAccNumber').value = '';
     document.getElementById('newAccBalance').value = '';
     loadData();
   } catch (e) {
@@ -347,7 +349,7 @@ async function processTransaction() {
 }
 
 // ==========================
-// UPDATED TRANSFER LOGIC (INCLUDES OUT OF WALLET)
+// TRANSFER LOGIC
 // ==========================
 function openTransferModal() {
   const fromSelect = document.getElementById('transferFromAcc');
@@ -356,7 +358,6 @@ function openTransferModal() {
   fromSelect.innerHTML = '';
   toSelect.innerHTML = '';
 
-  // সব অ্যাকাউন্ট (OUT OF WALLET সহ) ড্রপডাউন দুটিতেই প্রদর্শন করা হবে
   accountsData.forEach(acc => {
     const opt1 = document.createElement('option');
     opt1.value = acc.id; 
@@ -698,7 +699,7 @@ async function deleteSI(id) {
 }
 
 // ==========================
-// INDIVIDUAL ACCOUNT STATEMENT
+// INDIVIDUAL ACCOUNT STATEMENT (UPDATED WITH NO & TYPE)
 // ==========================
 function loadStatementAccounts() {
   const select = document.getElementById('statementAccSelect');
@@ -716,6 +717,11 @@ async function generateStatement() {
   const endInput = document.getElementById('statementEndDate').value;
 
   if (!targetAccName || !startInput || !endInput) return alert("Account এবং Date Range সিলেক্ট করুন");
+
+  // খুঁজে বের করা একাউন্ট এর মেটাডেটা (নাম্বার এবং টাইপ)
+  const activeAcc = accountsData.find(a => a.name === targetAccName);
+  const accNo = activeAcc && activeAcc.accountNumber ? activeAcc.accountNumber : 'N/A';
+  const accType = activeAcc && activeAcc.accountType ? activeAcc.accountType : 'Savings';
 
   const startDate = new Date(startInput); startDate.setHours(0,0,0,0);
   const endDate = new Date(endInput); endDate.setHours(23,59,59,999);
@@ -737,7 +743,9 @@ async function generateStatement() {
     }
   });
 
+  // প্রিন্ট সেকশনে অফিশিয়াল মেটাডেটা পুশ করা
   document.getElementById('printAccName').innerText = `Account: ${targetAccName}`;
+  document.getElementById('printAccDetails').innerText = `Type: ${accType} | A/C No: ${accNo}`;
   document.getElementById('printDateRange').innerText = `Period: ${startDate.toLocaleDateString('en-GB')} to ${endDate.toLocaleDateString('en-GB')}`;
 
   let tableHtml = `
@@ -927,14 +935,14 @@ function closeModal(id) {
   document.getElementById(id).style.display = 'none';
 }
 
-// ==========================
-// UTILITIES
-// ==========================
 function toggleSidebar(id) {
   const sb = document.getElementById(id);
   sb.style.width = sb.style.width === '250px' ? '0' : '250px';
 }
 
+// ==========================
+// UTILITIES
+// ==========================
 function toggleRecurringFields() {
   const type = document.getElementById('recType').value;
   if (type === 'transfer') {
