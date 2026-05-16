@@ -1,7 +1,7 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background: #f3f4f6;
 }
 
@@ -36,12 +36,42 @@ button {
   cursor: pointer;
 }
 
+/* ==========================
+   UPDATED TOPBAR & COMPACT SIDEBAR BUTTONS
+   ========================== */
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 10px;
 }
 
+.topbar h2 {
+  font-size: 20px;
+  margin: 0;
+}
+
+/* স্লাইডবারের বাটনগুলো ছোট এবং গোল করা হলো */
+.menu-btn {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  margin-top: 0 !important;
+  font-size: 14px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50% !important;
+  background: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ==========================
+   SIDEBARS
+   ========================== */
 .sidebar {
   height: 100%;
   width: 0; 
@@ -78,53 +108,41 @@ button {
   border: none;
 }
 
-.menu-btn {
-  padding: 8px 15px;
-  background: #2563eb;
-  color: white;
-  border-radius: 8px;
-  border: none;
-}
-
 .summary-card {
   text-align: center;
   background: linear-gradient(135deg, #1e293b, #334155);
   color: white;
-  padding: 25px;
-}
-
-.account-item {
-  padding: 15px;
-  border: 1px solid #ddd;
+  padding: 20px;
   border-radius: 12px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-  background: white;
+  margin-bottom: 12px;
 }
 
+/* ==========================
+   COMPACT 3-COLUMN ACCOUNT GRID (উপরে নিচে চাপানো)
+   ========================== */
 .account-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); 
-  gap: 10px;
-  margin-bottom: 15px;
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 6px; /* কার্ডগুলোর মাঝের গ্যাপ কমানো হয়েছে */
+  margin-bottom: 10px;
 }
 
 .account-item {
+  position: relative;
   background: #9ca3af; 
   color: white;
-  padding: 15px;
-  border-radius: 12px;
+  /* প্যাডিং উপরে-নিচে কমিয়ে ২০px এবং ১২px থেকে ১২px ও ৮px করা হয়েছে */
+  padding: 18px 4px 6px 4px; 
+  border-radius: 8px;
   cursor: pointer;
   transition: 0.3s;
   border: 2px solid transparent;
-}
-
-.account-item span {
-  display: block;
-  font-size: 14px;
-  margin-top: 5px;
-  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  box-sizing: border-box;
+  min-height: 65px; /* হাইট কমিয়ে উপরে-নিচে জাপটে দেওয়া হয়েছে */
 }
 
 .account-item.selected {
@@ -132,6 +150,54 @@ button {
   border-color: #14b8a6;
 }
 
+/* অ্যাকাউন্টের ভেতরের টেক্সট বক্স */
+.account-info-box {
+  width: 100%;
+}
+
+.account-item strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1.2;
+  word-break: break-word;
+  margin-bottom: 2px;
+}
+
+.account-item span {
+  display: block;
+  font-size: 11px;
+  font-weight: bold;
+  color: #f3f4f6;
+}
+
+/* অ্যাকশন বাটন কন্টেইনার (টপ-রাইট কোণায়) */
+.account-actions {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  gap: 2px;
+}
+
+/* ছোট গোল এডিট ও ডিলিট বাটন */
+.account-actions button {
+  width: 16px !important;
+  height: 16px !important;
+  padding: 0 !important;
+  margin-top: 0 !important;
+  font-size: 8px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50% !important;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+/* ==========================
+   DASHBOARD BUTTONS & GRID
+   ========================== */
 .action-grid {
   display: flex;
   gap: 10px;
