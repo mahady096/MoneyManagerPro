@@ -207,6 +207,16 @@
   </div>
 </div>
 
+<div id="editAccModal" class="modal" style="display:none;">
+  <div class="card">
+    <h3>Rename Account</h3>
+    <p id="editAccCurrentName" style="font-weight:bold; color:#2563eb; margin-bottom:5px;"></p>
+    <input id="editAccNewName" placeholder="New Account Name">
+    <button onclick="updateAccountName()">Update Name</button>
+    <button onclick="closeModal('editAccModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
+  </div>
+</div>
+
 <div id="transModal" class="modal" style="display:none;">
   <div class="card">
     <h3 id="modalTitle">Transaction</h3>
@@ -219,11 +229,17 @@
 
 <div id="transferModal" class="modal" style="display:none;">
   <div class="card">
-    <h3>Transfer</h3>
+    <h3>Fund Transfer</h3>
+    
+    <label style="font-size: 12px; color:#4b5563; font-weight: bold;">From Account (উৎস):</label>
+    <select id="transferFromAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;"></select>
+    
+    <label style="font-size: 12px; color:#4b5563; font-weight: bold;">To Account (গন্তব্য):</label>
     <select id="transferToAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;"></select>
-    <input id="transferAmount" type="number" placeholder="Amount">
-    <input id="transferNote" placeholder="Note">
-    <button onclick="processTransfer()">Send</button>
+    
+    <input id="transferAmount" type="number" placeholder="Amount (টাকার পরিমাণ)">
+    <input id="transferNote" placeholder="Note (বিবরণ)">
+    <button onclick="processTransfer()">Confirm Transfer</button>
     <button onclick="closeModal('transferModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
   </div>
 </div>
