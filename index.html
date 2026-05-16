@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Money Manager</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <div id="authBox">
+    <div class="card">
+      <h2>Login</h2>
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <button onclick="register()">Register</button>
+      <button onclick="login()">Login</button>
+    </div>
+  </div>
+
+  <div id="app" style="display:none;">
+
+    <div class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar('leftSidebar')">☰</button>
+      <h2>Dashboard</h2>
+      <button class="menu-btn" onclick="toggleSidebar('rightSidebar')">👤</button>
+    </div>
+
+    <div id="leftSidebar" class="sidebar left-sidebar">
+      <button class="close-btn" onclick="toggleSidebar('leftSidebar')">×</button>
+      <div class="sidebar-menu">
+        <a href="#" onclick="showSection('main-content'); toggleSidebar('leftSidebar')">Dashboard</a>
+        <a href="#" onclick="showSection('recurring-section'); toggleSidebar('leftSidebar')">Recurring</a>
+        <a href="#" onclick="showSection('chart-section'); toggleSidebar('leftSidebar')">Chart</a>
+        <a href="#" onclick="showSection('statement-section'); toggleSidebar('leftSidebar')">Account Statement</a>
+        <a href="#" onclick="showSection('income-expense-section'); toggleSidebar('leftSidebar')">Income Expense Statement</a>
+      </div>
+    </div>
+
+    <div id="rightSidebar" class="sidebar right-sidebar">
+      <button class="close-btn" onclick="toggleSidebar('rightSidebar')">×</button>
+      <div class="sidebar-menu">
+        <a href="#" onclick="logout()">Logout</a>
+        <a href="#" onclick="triggerDeleteAccount(); toggleSidebar('rightSidebar')" style="color: #ef4444; font-weight: bold; margin-top: 20px;">Delete Account</a>
+      </div>
+    </div>
+
+    <div id="main-content">
+      <div class="card summary-card">
+        <h3>Total Balance</h3>
+        <h2 id="totalBalance">0 BDT</h2>
+        <div id="selectedBalanceBox" style="display:none; margin-top:10px; padding:5px; background:rgba(255,255,255,0.2); border-radius:5px;">
+          Selected: <span id="selectedBalance">0</span> BDT
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between;">
+          <div>
+            <h4 style="color:green;">Income</h4>
+            <h3 id="totalIncomeDisplay">0</h3>
+          </div>
+          <div>
+            <h4 style="color:red;">Expense</h4>
+            <h3 id="totalExpenseDisplay">0</h3>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-grid">
+        <button onclick="openModal('income')">Income</button>
+        <button onclick="openModal('expense')">Expense</button>
+        <button onclick="openTransferModal()">Transfer</button>
+      </div>
+
+      <div class="account-grid" id="accountsList"></div>
+      <div class="card" style="text-align:center; border:2px dashed #2563eb; color:#2563eb; cursor:pointer; padding:15px;" onclick="document.getElementById('addAccModal').style.display='flex'">
+        ➕ Add Account
+      </div>
+
+      <div id="transactionsList" style="margin-top:15px;"></div>
+    </div>
+
+    <div id="chart-section" style="display:none; padding:10px;">
+      <div class="card summary-card">
+        <h2 id="chartTotalBalance">0 BDT</h2>
+        <p>Selected Balance</p>
+      </div>
+      <div id="chartAccountsList" class="account-grid" style="margin-bottom:15px;"></div>
+      <div class="card" style="height:320px; background:white; padding:10px; border-radius:8px; box-sizing:border-box;">
+        <canvas id="balanceChart" style="width:100%; height:100%;"></canvas>
+      </div>
+      <div class="card" style="margin-top:10px;">
+        <button onclick="updateChartData()" style="width:100%; background:#2563eb; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">Refresh Chart</button>
+      </div>
+    </div>
+
+    <div id="recurring-section" style="display:none; padding:15px;">
+      <div class="card">
+        <h3>Recurring List</h3>
+        <div id="recurringList"></div>
+      </div>
+      <button onclick="openRecurringAddModal()" style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:5px; font-weight:bold; margin-top:15px; cursor:pointer;">Add New Instruction</button>
+    </div>
+
+    <div id="statement-section" style="display:none; padding:10px;">
+      <div class="card no-print">
+        <h3>Account Statement</h3>
+        <label for="statementAccSelect" style="font-size: 13px; font-weight: bold; color: #4b5563;">Account সিলেক্ট করুন:</label>
+        <select id="statementAccSelect" style="margin-bottom:10px;"></select>
+        
+        <div style="display: flex; gap: 10px; margin-top: 5px;">
+          <div style="flex: 1;">
+            <label style="font-size: 12px; color:#4b5563;">From Date:</label>
+            <input type="date" id="statementStartDate">
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 12px; color:#4b5563;">To Date:</label>
+            <input type="date" id="statementEndDate">
+          </div>
+        </div>
+        <button onclick="generateStatement()" style="margin-top:15px; font-weight:bold;">Generate Statement</button>
+      </div>
+
+      <div id="printableStatementArea" class="card" style="display:none;">
+        <div class="statement-header" style="text-align:center; margin-bottom:15px;">
+          <h2>Account Statement</h2>
+          <h4 id="printAccName" style="color:#2563eb; margin:5px 0;">Account: -</h4>
+          <p id="printDateRange" style="font-size:13px; margin:5px 0; color:#4b5563;">Period: -</p>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>তারিখ</th>
+                <th>বিবরণ / খাত</th>
+                <th>জমা (Cr)</th>
+                <th>খরচ (Dr)</th>
+                <th>মোট ব্যালেন্স</th>
+              </tr>
+            </thead>
+            <tbody id="statementTableBody"></tbody>
+          </table>
+        </div>
+        <div class="no-print" style="margin-top:20px;">
+          <button onclick="printStatement()" style="background:#16a34a; font-weight:bold;">Download / Print PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="income-expense-section" style="display:none; padding:10px;">
+      <div class="card no-print">
+        <h3>Income Expense Statement</h3>
+        <div style="display: flex; gap: 10px; margin-top: 5px;">
+          <div style="flex: 1;">
+            <label style="font-size: 12px; color:#4b5563;">From Date:</label>
+            <input type="date" id="ieStartDate">
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 12px; color:#4b5563;">To Date:</label>
+            <input type="date" id="ieEndDate">
+          </div>
+        </div>
+        <button onclick="generateIncomeExpenseStatement()" style="margin-top:15px; font-weight:bold;">Generate Statement</button>
+      </div>
+
+      <div id="printableIEArea" class="card" style="display:none;">
+        <div class="statement-header" style="text-align:center; margin-bottom:15px;">
+          <h2>Income Expense Statement</h2>
+          <p id="printIEDateRange" style="font-size:13px; margin:5px 0; color:#4b5563;">Period: -</p>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>তারিখ</th>
+                <th>জমা / পেমেন্ট (খাত)</th>
+                <th>জমার টাকা</th>
+                <th>পেমেন্ট</th>
+                <th>ব্যালেন্স</th>
+              </tr>
+            </thead>
+            <tbody id="ieTableBody"></tbody>
+          </table>
+        </div>
+        <div class="no-print" style="margin-top:20px;">
+          <button onclick="printStatement()" style="background:#16a34a; font-weight:bold;">Download / Print PDF</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="addAccModal" class="modal" style="display:none;">
+  <div class="card">
+    <h3>Add Account</h3>
+    <input id="newAccName" placeholder="Name">
+    <input id="newAccBalance" type="number" placeholder="Balance">
+    <button onclick="saveNewAccount()">Save</button>
+    <button onclick="closeModal('addAccModal')" style="background:#6b7280; margin-top:5px;">Close</button>
+  </div>
+</div>
+
+<div id="transModal" class="modal" style="display:none;">
+  <div class="card">
+    <h3 id="modalTitle">Transaction</h3>
+    <input id="transAmount" type="number" placeholder="Amount">
+    <input id="transNote" placeholder="Note">
+    <button onclick="processTransaction()">Confirm</button>
+    <button onclick="closeModal('transModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
+  </div>
+</div>
+
+<div id="transferModal" class="modal" style="display:none;">
+  <div class="card">
+    <h3>Transfer</h3>
+    <select id="transferToAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;"></select>
+    <input id="transferAmount" type="number" placeholder="Amount">
+    <input id="transferNote" placeholder="Note">
+    <button onclick="processTransfer()">Send</button>
+    <button onclick="closeModal('transferModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
+  </div>
+</div>
+
+<div id="editTransModal" class="modal" style="display:none;">
+  <div class="card">
+    <h3>Edit Transaction</h3>
+    <p id="editTransTarget" style="font-weight:bold; color:#2563eb;"></p>
+    <input id="editTransAmount" type="number" placeholder="Amount">
+    <input id="editTransNote" placeholder="Note">
+    <button onclick="updateTransaction()">Update</button>
+    <button onclick="closeModal('editTransModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
+  </div>
+</div>
+
+<div id="recurringModal" class="modal" style="display:none;">
+  <div class="card">
+    <h3>Recurring Instruction</h3>
+    <select id="recType" onchange="toggleRecurringFields()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px;">
+      <option value="income">Income</option>
+      <option value="expense">Expense</option>
+      <option value="transfer">Transfer</option>
+    </select>
+    <div id="commonAccField">
+      <select id="recAccId" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px;"></select>
+    </div>
+    <div id="transferFields" style="display:none;">
+      <select id="recFromAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px;"></select>
+      <select id="recToAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px;"></select>
+    </div>
+    <input id="recAmount" type="number" placeholder="Amount">
+    <input id="recNote" placeholder="Note">
+    <input id="recDay" type="number" placeholder="Day">
+    <button onclick="saveRecurringInstruction()">Save</button>
+    <button onclick="closeModal('recurringModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
+  </div>
+</div>
+
+<div id="deleteAuthModal" class="modal" style="display:none;">
+  <div class="card" style="border: 2px solid #dc2626;">
+    <h3 style="color:#dc2626; margin-top:0;">Account মুছে ফেলুন</h3>
+    <p style="font-size:13px; color:#4b5563;">নিরাপত্তার স্বার্থে আপনার বর্তমান পাসওয়ার্ডটি আবার দিন। মনে রাখবেন, এর ফলে আপনার সমস্ত ডেটা চিরতরে ডিলিট হয়ে যাবে!</p>
+    <input id="deleteConfirmPassword" type="password" placeholder="আপনার পাসওয়ার্ড দিন" style="border-color:#dc2626;">
+    <button onclick="executeAccountDeletion()" style="background:#dc2626; font-weight:bold; margin-top:15px;">Permanently Delete Everything</button>
+    <button onclick="closeModal('deleteAuthModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
+  </div>
+</div>
+
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

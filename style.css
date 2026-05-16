@@ -1,0 +1,224 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial;
+  background: #f3f4f6;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  padding: 15px;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+
+input,
+select,
+button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar {
+  height: 100%;
+  width: 0; 
+  position: fixed;
+  z-index: 1000;
+  top: 0;
+  background-color: #1e293b;
+  overflow-x: hidden;
+  transition: 0.3s;
+  padding-top: 60px;
+}
+
+.left-sidebar { left: 0; }
+.right-sidebar { right: 0; }
+
+.sidebar-menu a {
+  padding: 15px 25px;
+  text-decoration: none;
+  font-size: 18px;
+  color: #f3f4f6;
+  display: block;
+  transition: 0.3s;
+}
+
+.sidebar-menu a:hover { background-color: #334155; }
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 25px;
+  font-size: 36px;
+  color: white;
+  background: none;
+  border: none;
+}
+
+.menu-btn {
+  padding: 8px 15px;
+  background: #2563eb;
+  color: white;
+  border-radius: 8px;
+  border: none;
+}
+
+.summary-card {
+  text-align: center;
+  background: linear-gradient(135deg, #1e293b, #334155);
+  color: white;
+  padding: 25px;
+}
+
+.account-item {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  background: white;
+}
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); 
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.account-item {
+  background: #9ca3af; 
+  color: white;
+  padding: 15px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s;
+  border: 2px solid transparent;
+}
+
+.account-item span {
+  display: block;
+  font-size: 14px;
+  margin-top: 5px;
+  font-weight: bold;
+}
+
+.account-item.selected {
+  background: #2dd4bf; 
+  border-color: #14b8a6;
+}
+
+.action-grid {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.action-grid button {
+  flex: 1;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal .card {
+  width: 90%;
+  max-width: 350px;
+}
+
+/* ==========================
+   GENERIC REPORT TABLES
+   ========================== */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  background: white;
+  font-size: 13px;
+}
+
+.report-table th, 
+.report-table td {
+  padding: 10px 8px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.report-table th {
+  background-color: #1e293b;
+  color: white;
+  font-weight: bold;
+}
+
+.report-table tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+/* ==========================
+   PRINT/PDF OPTIMIZATION
+   ========================== */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  .container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .no-print, .topbar, .sidebar, .modal, .action-grid, .account-grid, #transactionsList {
+    display: none !important;
+  }
+  #statement-section, #income-expense-section {
+    display: block !important;
+  }
+  #printableStatementArea, #printableIEArea {
+    display: block !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .report-table th {
+    background-color: #1e293b !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
