@@ -1,302 +1,758 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Money Manager</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Market Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        #sell-holdings-container table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        #sell-holdings-container th.small-col,
+        #sell-holdings-container td.small-col {
+            font-size: 11px !important;
+            padding: 6px 4px !important;
+            text-align: left !important;
+            width: 13% !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #sell-holdings-container th:last-child,
+        #sell-holdings-container td:last-child {
+            width: 35% !important;
+            padding: 6px 4px !important;
+        }
+
+        .sell-input-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .input-field-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .input-field-wrapper label {
+            font-size: 9px;
+            color: #64748b;
+            margin-bottom: 2px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .input-field-wrapper input {
+            width: 100% !important;
+            padding: 4px 5px !important;
+            font-size: 12px !important;
+            margin: 0 !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 4px !important;
+            outline: none;
+            background-color: #f8fafc;
+        }
+
+        .input-field-wrapper input:focus {
+            border-color: #007bff !important;
+            background-color: #fff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
+        }
+
+        #sec-table table, #sec-analysis table, #sec-statement table {
+            width: 100%;
+            font-size: 12px !important;
+        }
+
+        #sec-table th, #sec-table td, 
+        #sec-analysis th, #sec-analysis td,
+        #sec-statement th, #sec-statement td {
+            padding: 6px 5px !important;
+        }
+
+        tfoot tr {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            border-top: 2px solid #cbd5e1;
+        }
+
+        tfoot td {
+            padding: 8px 5px !important;
+            color: #1e293b;
+            font-size: 12px;
+        }
+        
+        .name-positive { color: #10b981 !important; font-weight: bold; }
+        .name-negative { color: #ef4444 !important; font-weight: bold; }
+        .name-default { color: #333333 !important; font-weight: bold; }
+        
+        .chart-box {
+            margin-top: 25px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        input::-webkit-outer-spin-button, 
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none; 
+            margin: 0;
+        }
+
+        /* 📋 LEDGER MODAL STYLES */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+        .modal-content {
+            background: white; padding: 20px;
+            border-radius: 8px; width: 90%; max-width: 500px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-  <div id="authBox">
-    <div class="card">
-      <h2>Login</h2>
-      <input type="email" id="email" placeholder="Email">
-      <input type="password" id="password" placeholder="Password">
-      <button onclick="register()">Register</button>
-      <button onclick="login()">Login</button>
-    </div>
-  </div>
-
-  <div id="app" style="display:none;">
-
-    <div class="topbar">
-      <button class="menu-btn" onclick="toggleSidebar('leftSidebar')">☰</button>
-      <h2>Dashboard</h2>
-      <button class="menu-btn" onclick="toggleSidebar('rightSidebar')">👤</button>
-    </div>
-
-    <div id="leftSidebar" class="sidebar left-sidebar">
-      <button class="close-btn" onclick="toggleSidebar('leftSidebar')">×</button>
-      <div class="sidebar-menu">
-        <a href="#" onclick="showSection('main-content'); toggleSidebar('leftSidebar')">Dashboard</a>
-        <a href="#" onclick="showSection('recurring-section'); toggleSidebar('leftSidebar')">Recurring</a>
-        <a href="#" onclick="showSection('chart-section'); toggleSidebar('leftSidebar')">Chart</a>
-        <a href="#" onclick="showSection('statement-section'); toggleSidebar('leftSidebar')">Account Statement</a>
-        <a href="#" onclick="showSection('income-expense-section'); toggleSidebar('leftSidebar')">Income Expense Statement</a>
-      </div>
-    </div>
-
-    <div id="rightSidebar" class="sidebar right-sidebar">
-      <button class="close-btn" onclick="toggleSidebar('rightSidebar')">×</button>
-      <div class="sidebar-menu">
-        <a href="#" onclick="logout()">Logout</a>
-        <a href="#" onclick="triggerDeleteAccount(); toggleSidebar('rightSidebar')" style="color: #ef4444; font-weight: bold; margin-top: 20px;">Delete Account</a>
-      </div>
-    </div>
-
-    <div id="main-content">
-      <div class="card summary-card">
-        <h3>Total Balance</h3>
-        <h2 id="totalBalance">0 BDT</h2>
-        <div id="selectedBalanceBox" style="display:none; margin-top:10px; padding:5px; background:rgba(255,255,255,0.2); border-radius:5px;">
-          Selected: <span id="selectedBalance">0</span> BDT
-        </div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex; justify-content:space-between;">
-          <div>
-            <h4 style="color:green;">Income</h4>
-            <h3 id="totalIncomeDisplay">0</h3>
-          </div>
-          <div>
-            <h4 style="color:red;">Expense</h4>
-            <h3 id="totalExpenseDisplay">0</h3>
-          </div>
-        </div>
-      </div>
-
-      <div class="action-grid">
-        <button onclick="openModal('income')">Income</button>
-        <button onclick="openModal('expense')">Expense</button>
-        <button onclick="openTransferModal()">Transfer</button>
-      </div>
-
-      <div class="account-grid" id="accountsList"></div>
-      <div class="card" style="text-align:center; border:2px dashed #2563eb; color:#2563eb; cursor:pointer; padding:15px;" onclick="document.getElementById('addAccModal').style.display='flex'">
-        ➕ Add Account
-      </div>
-
-      <div id="transactionsList" style="margin-top:15px;"></div>
-    </div>
-
-    <div id="chart-section" style="display:none; padding:10px;">
-      <div class="card summary-card">
-        <h2 id="chartTotalBalance">0 BDT</h2>
-        <p>Selected Balance</p>
-      </div>
-      <div id="chartAccountsList" class="account-grid" style="margin-bottom:15px;"></div>
-      <div class="card" style="height:320px; background:white; padding:10px; border-radius:8px; box-sizing:border-box;">
-        <canvas id="balanceChart" style="width:100%; height:100%;"></canvas>
-      </div>
-      <div class="card" style="margin-top:10px;">
-        <button onclick="updateChartData()" style="width:100%; background:#2563eb; color:white; border:none; padding:10px; border-radius:5px; font-weight:bold; cursor:pointer;">Refresh Chart</button>
-      </div>
-    </div>
-
-    <div id="recurring-section" style="display:none; padding:15px;">
-      <div class="card">
-        <h3>Recurring List</h3>
-        <div id="recurringList"></div>
-      </div>
-      <button onclick="openRecurringAddModal()" style="width:100%; padding:12px; background:#2563eb; color:white; border:none; border-radius:5px; font-weight:bold; margin-top:15px; cursor:pointer;">Add New Instruction</button>
-    </div>
-
-    <div id="statement-section" style="display:none; padding:10px;">
-      <div class="card no-print">
-        <h3>Account Statement</h3>
-        <label for="statementAccSelect" style="font-size: 13px; font-weight: bold; color: #4b5563;">Account সিলেক্ট করুন:</label>
-        <select id="statementAccSelect" style="margin-bottom:10px;"></select>
+    <div id="login-container" class="auth-box">
+        <h2 id="auth-title">Portfolio Login</h2>
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
         
-        <div style="display: flex; gap: 10px; margin-top: 5px;">
-          <div style="flex: 1;">
-            <label style="font-size: 12px; color:#4b5563;">From Date:</label>
-            <input type="date" id="statementStartDate">
-          </div>
-          <div style="flex: 1;">
-            <label style="font-size: 12px; color:#4b5563;">To Date:</label>
-            <input type="date" id="statementEndDate">
-          </div>
-        </div>
-        <button onclick="generateStatement()" style="margin-top:15px; font-weight:bold;">Generate Statement</button>
-      </div>
+        <button id="btn-login">Login</button>
+        <button id="btn-signup" class="hidden" style="background: #10b981;">Create Account</button>
+        
+        <p id="toggle-auth-text" style="margin-top: 15px; font-size: 14px; cursor: pointer; color: #007bff;">
+            Don't have an account? Register here
+        </p>
+        <p id="auth-error" class="error"></p>
+    </div>
+<!-- ডার্ক মোড টগল বাটন -->
+<div class="theme-switch">
+    <button id="theme-toggle" onclick="toggleDarkMode()" title="Dark/Light Mode">
+        🌙
+    </button>
+</div>
+    <div id="app-container" class="hidden">
+        
+        <aside id="left-sidebar" class="sidebar left-sidebar">
+            <div class="sidebar-header">
+                <h3>Navigation</h3>
+                <button class="close-btn" onclick="toggleLeftSidebar()">×</button>
+            </div>
+            <ul>
+                <li class="active" onclick="switchTab('dashboard')">Dashboard</li>
+                <li onclick="switchTab('buy')">Buy Share</li>
+                <li onclick="switchTab('sell')">Sell Share</li> 
+                <li onclick="switchTab('table')">Stock Table</li>
+                <li onclick="switchTab('analysis')">Analysis Stat</li>
+                <li onclick="switchTab('statement')">Statement</li>
+                <li onclick="switchTab('portfolio-analysis')">Portfolio Analysis</li>
+                <li onclick="switchTab('dividend')">💰 Dividend Analysis</li>
+                <li onclick="confirmAndDeletePortfolio()" style="color: #ef4444; font-weight: bold; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                    <span class="icon">🗑️</span> Delete Portfolio
+                </li>
+            </ul>
+            <div style="margin: 10px 0; padding: 10px; background: #f1f5f9; border-radius: 6px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <button id="btn-download-data" onclick="downloadPortfolioData()" style="background: #10b981; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer;">
+        📥 ডাটা ব্যাকআপ (ডাউনলোড)
+    </button>
+    
+    <div style="display: flex; align-items: center; gap: 5px;">
+        <label for="upload-file-input" style="background: #6366f1; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px;">
+            📤 ডাটা রিস্টোর (আপলোড)
+        </label>
+        <input type="file" id="upload-file-input" accept=".json" onchange="uploadPortfolioData(event)" style="display: none;">
+    </div>
+</div>
+            <button id="btn-logout" class="logout-btn">Logout</button>
+        </aside>
 
-      <div id="printableStatementArea" class="card" style="display:none;">
-        <div class="statement-header" style="text-align:center; margin-bottom:15px;">
-          <h2>Account Statement</h2>
-          <h4 id="printAccName" style="color:#2563eb; margin:5px 0;">Account: -</h4>
-          <p id="printAccDetails" style="font-size:13px; margin:3px 0; color:#4b5563; font-weight: bold;"></p>
-          <p id="printDateRange" style="font-size:12px; margin:3px 0; color:#6b7280;">Period: -</p>
+        <main class="main-content">
+            <header>
+                <button class="toggle-trigger" onclick="toggleLeftSidebar()">☰ Menu</button>
+                <h2>Portfolio Dashboard</h2>
+                <button class="toggle-trigger" style="visibility: hidden;">Watchlist ☰</button>
+            </header>
+
+<section id="sec-dashboard" class="tab-content">
+    <!-- ডাটা সোর্স ইন্ডিকেটর -->
+    <div class="data-source-indicator" id="data-source-indicator">
+        <div class="source-info">
+            <span class="source-icon" id="source-icon">💾</span>
+            <span class="source-text" id="source-text">Firebase Mode</span>
+        </div>
+        <div class="data-details">
+            <span>📅 Data: </span>
+            <span id="data-date-value">Loading...</span>
+        </div>
+        <div class="mode-buttons">
+            <button id="btn-firebase-mode" class="mode-btn active" onclick="setFirebaseMode()">
+                💾 Firebase
+            </button>
+            <button id="btn-live-mode" class="mode-btn" onclick="setLiveMode()">
+                📡 Live API
+            </button>
+        </div>
+    </div>
+    
+    <!-- ৩টি মূল কার্ড -->
+    <div class="cards">
+        <div class="card">Total Investment: <span id="total-invest">৳০.০০</span></div>
+        <div class="card">Current Value: <span id="current-value">৳০.০০</span></div>
+        <div class="card">Profit/Loss: <span id="profit-loss">৳০.০০</span></div>
+    </div>
+
+    <!-- 🆕 পারফরম্যান্স সামারি টেবিল (Dashboard এ) -->
+    <div class="dashboard-performance" style="background: var(--bg-secondary); border-radius: 12px; margin-top: 20px; overflow: hidden; box-shadow: var(--card-shadow);">
+        <div style="padding: 12px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <span style="font-weight: bold; color: white;">📈 Portfolio Performance Summary</span>
+            <span style="font-size: 12px; color: rgba(255,255,255,0.8); margin-left: 10px;">Last updated: <span id="dash-perf-update-time">-</span></span>
         </div>
         <div style="overflow-x: auto;">
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>তারিখ</th>
-                <th>বিবরণ / খাত</th>
-                <th>জমা (Cr)</th>
-                <th>খরচ (Dr)</th>
-                <th>মোট ব্যালেন্স</th>
-              </tr>
-            </thead>
-            <tbody id="statementTableBody"></tbody>
-          </table>
+            <table class="dashboard-performance-table" style="width: 100%; font-size: 13px; min-width: 600px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 12px;">Period</th>
+                        <th style="padding: 12px;">Today</th>
+                        <th style="padding: 12px;">5 Days</th>
+                        <th style="padding: 12px;">15 Days</th>
+                        <th style="padding: 12px;">30 Days</th>
+                        <th style="padding: 12px;">3 Months</th>
+                        <th style="padding: 12px;">6 Months</th>
+                        <th style="padding: 12px;">1 Year</th>
+                    </td>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 12px; font-weight: bold;">Portfolio Return</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-perf-today">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-perf-5d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-perf-15d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-perf-30d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-perf-3m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-perf-6m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-perf-1y">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                    </tr>
+                    <tr style="background: var(--bg-tertiary);">
+                        <td style="padding: 12px; font-weight: bold;">Benchmark (DSEX)</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-bench-today">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-bench-5d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-bench-15d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-bench-30d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-bench-3m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-bench-6m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-bench-1y">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px; font-weight: bold;">Difference</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-diff-today">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-diff-5d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-diff-15d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-diff-30d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-diff-3m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-diff-6m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="dash-diff-1y">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-        <div class="no-print" style="margin-top:20px;">
-          <button onclick="printStatement()" style="background:#16a34a; font-weight:bold;">Download / Print PDF</button>
-        </div>
-      </div>
     </div>
 
-    <div id="income-expense-section" style="display:none; padding:10px;">
-      <div class="card no-print">
-        <h3>Income Expense Statement</h3>
-        <div style="display: flex; gap: 10px; margin-top: 5px;">
-          <div style="flex: 1;">
-            <label style="font-size: 12px; color:#4b5563;">From Date:</label>
-            <input type="date" id="ieStartDate">
-          </div>
-          <div style="flex: 1;">
-            <label style="font-size: 12px; color:#4b5563;">To Date:</label>
-            <input type="date" id="ieEndDate">
-          </div>
-        </div>
-        <button onclick="generateIncomeExpenseStatement()" style="margin-top:15px; font-weight:bold;">Generate Statement</button>
-      </div>
+    <div class="update-timestamp" id="update-timestamp"></div>
 
-      <div id="printableIEArea" class="card" style="display:none;">
-        <div class="statement-header" style="text-align:center; margin-bottom:15px;">
-          <h2>Income Expense Statement</h2>
-          <p id="printIEDateRange" style="font-size:13px; margin:5px 0; color:#4b5563;">Period: -</p>
+    <div class="chart-box">
+        <h4 style="margin-bottom: 10px; color: #475569; font-size: 14px;">Portfolio Growth (Investment vs Value)</h4>
+        <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="dashboardChart"></canvas>
+        </div>
+    </div>
+</section>
+            <section id="sec-portfolio-analysis" class="tab-content hidden">
+    <div style="padding: 10px 15px; background: #667eea; border-radius: 12px 12px 0 0; color: white;">
+        <h3 style="margin: 0; font-size: 16px;">📊 Portfolio Performance Dashboard</h3>
+        <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">Real-time analysis from Firebase data</p>
+    </div>
+
+    <!-- 🆕 পারফরম্যান্স সারাংশ টেবিল -->
+    <div class="performance-summary" style="background: var(--bg-secondary); margin: 15px; border-radius: 12px; overflow: hidden; box-shadow: var(--card-shadow);">
+        <div style="padding: 12px 15px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color);">
+            <span style="font-weight: bold;">📈 Performance Summary</span>
+            <span style="font-size: 12px; color: var(--text-muted); margin-left: 10px;">Last updated: <span id="perf-update-time">-</span></span>
         </div>
         <div style="overflow-x: auto;">
-          <table class="report-table">
+            <table class="performance-table" style="width: 100%; font-size: 13px; min-width: 600px;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 12px;">Period</th>
+                        <th style="padding: 12px;">Today</th>
+                        <th style="padding: 12px;">5 Days</th>
+                        <th style="padding: 12px;">15 Days</th>
+                        <th style="padding: 12px;">30 Days</th>
+                        <th style="padding: 12px;">3 Months</th>
+                        <th style="padding: 12px;">6 Months</th>
+                        <th style="padding: 12px;">1 Year</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 12px; font-weight: bold;">Portfolio Return</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="perf-today">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="perf-5d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="perf-15d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="perf-30d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="perf-3m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="perf-6m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="perf-1y">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                    </tr>
+                    <tr style="background: var(--bg-tertiary);">
+                        <td style="padding: 12px; font-weight: bold;">Benchmark (DSEX)</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="bench-today">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="bench-5d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="bench-15d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="bench-30d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="bench-3m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="bench-6m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="bench-1y">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px; font-weight: bold;">Difference</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="diff-today">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="diff-5d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="diff-15d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="diff-30d">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="diff-3m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="diff-6m">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                        <td style="padding: 12px;" id="diff-1y">-</b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></b></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <style>
+        .bull-analysis-container {
+            background: var(--bg-secondary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 13px;
+            color: var(--text-primary);
+            max-width: 100%;
+            margin: 0 15px 15px 15px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        .bull-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            background: var(--bg-tertiary);
+        }
+        .bull-col-code { width: 35%; text-align: left; }
+        .bull-col-value { width: 25%; text-align: right; }
+        .bull-col-daily { width: 20%; text-align: right; }
+        .bull-col-total { width: 20%; text-align: right; }
+        .stock-block { border-bottom: 1px solid var(--border-color); padding: 10px 15px; }
+        .stock-main-row { display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; padding-bottom: 4px; }
+        .lot-rows-container { display: none; padding-top: 5px; border-top: 1px dashed var(--border-color); }
+        .stock-lot-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; color: var(--text-secondary); }
+        .toggle-text { font-size: 11px; color: var(--text-muted); margin-top: 2px; display: block; }
+        .ticker-title { font-weight: bold; color: var(--primary-color); font-size: 13px; }
+        .bull-profit { color: #10b981 !important; }
+        .bull-loss { color: #ef4444 !important; }
+        .performance-table th, .performance-table td { text-align: center; }
+        .performance-table tr:hover td { background-color: var(--hover-bg); }
+    </style>
+
+    <div class="bull-analysis-container">
+        <div class="bull-header">
+            <div class="bull-col-code">Code</div>
+            <div class="bull-col-value">Value/Cost</div>
+            <div class="bull-col-daily">Daily G/L</div>
+            <div class="bull-col-total">Total G/L</div>
+        </div>
+        <div id="bull-analysis-list">
+            <div style="text-align:center; padding: 20px; color: var(--text-muted);">Loading...</div>
+        </div>
+        <div class="bull-footer" style="background: var(--bg-tertiary); padding: 12px 15px; border-top: 1px solid var(--border-color);">
+            <div class="bull-footer-row" style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>Portfolio Total</span>
+                <span id="bull-total-value">0.00</span>
+                <span id="bull-total-daily" class="bull-neutral">0.00</span>
+                <span id="bull-total-gl" class="bull-neutral">0.00</span>
+            </div>
+            <div class="bull-footer-row" style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-top: 5px;">
+                <span>Total Cost: <b id="bull-total-cost">0.00</b></span>
+                <span id="bull-total-gl-percentage">0.00%</span>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- ==========================================
+     💰 DIVIDEND ANALYSIS SECTION
+     ========================================== -->
+<section id="sec-dividend" class="tab-content hidden">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+        <h3 style="color: white; margin: 0 0 5px 0;">💰 Dividend Analysis</h3>
+        <p style="color: rgba(255,255,255,0.85); margin: 0; font-size: 13px;">Track stock dividends and cash dividends</p>
+    </div>
+    
+    <!-- সার্চ ও ইনপুট সেকশন -->
+    <div class="dividend-input-section" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: var(--card-shadow);">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+            <div style="flex: 2; min-width: 180px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: bold; color: var(--text-secondary);">Search Share Name</label>
+                <div style="position: relative;">
+                    <input type="text" id="div-search-ticker" placeholder="e.g., GP, ROBI, SQURPHARMA" autocomplete="off" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+                    <div id="div-suggestion-box" class="suggestion-list hidden" style="top: 42px;"></div>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: bold; color: var(--text-secondary);">Stock Dividend (%)</label>
+                <input type="number" id="div-stock-percent" placeholder="e.g., 10" step="0.01" value="0" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: bold; color: var(--text-secondary);">Cash Dividend (per share)</label>
+                <input type="number" id="div-cash-amount" placeholder="e.g., 5.50" step="0.01" value="0" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+            </div>
+            <div style="flex: 0.5; min-width: 100px;">
+                <button id="btn-save-dividend" style="width: 100%; padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    💾 Save
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- টেবিল সেকশন -->
+    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 20px; box-shadow: var(--card-shadow);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h4 style="margin: 0; color: var(--text-primary);">📊 Dividend Ledger</h4>
+            <div style="display: flex; gap: 10px;">
+                <span style="font-size: 12px; padding: 4px 10px; background: #10b98120; border-radius: 20px; color: #10b981;">✓ Stock Gain</span>
+                <span style="font-size: 12px; padding: 4px 10px; background: #ef444420; border-radius: 20px; color: #ef4444;">✓ Cash Gain</span>
+            </div>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table id="dividend-table" style="width: 100%; font-size: 13px;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 12px;">Share Name</th>
+                        <th style="padding: 12px;">Stock (%)</th>
+                        <th style="padding: 12px;">Cash (৳)</th>
+                        <th style="padding: 12px;">Dividend Gain (৳)</th>
+                        <th style="padding: 12px;">Unrealized P/L (৳)</th>
+                        <th style="padding: 12px; text-align: center;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="dividend-table-body">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 30px; color: #64748b;">
+                            No dividend records. Search and add a share above.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+            <section id="sec-buy" class="tab-content hidden">
+                <h3>Buy Shares</h3>
+                <div class="trade-form" style="position: relative;">
+                    <input type="text" id="trade-ticker" placeholder="Share Name (e.g., GP, SQURPHARMA)" autocomplete="off">
+                    <div id="suggestion-box" class="suggestion-list hidden"></div>
+                    <input type="number" id="trade-qty" placeholder="Quantity">
+                    <input type="number" id="trade-price" placeholder="Price">
+                    <button class="btn-buy">Buy</button>
+                </div>
+            </section>
+
+            <section id="sec-sell" class="tab-content hidden">
+                <h3>Sell Shares from Holdings</h3>
+                <div class="trade-form" style="position: relative; display: flex; gap: 10px; margin-bottom: 20px;">
+                    <div style="position: relative; flex: 1;">
+                        <input type="text" id="sell-ticker" placeholder="Enter Share Name to Sell (e.g., GP, ROBI)" autocomplete="off" style="margin-bottom: 0;">
+                        <div id="sell-suggestion-box" class="suggestion-list hidden"></div>
+                    </div>
+                    <button class="btn-sell" id="btn-execute-sell" style="padding: 0 20px; height: 42px;">Save / Sell</button>
+                </div>
+
+                <div id="sell-holdings-container" class="hidden">
+                    <h4>Your Current Holdings for <span id="selected-sell-ticker" style="color: #007bff;"></span></h4>
+                    <table>
+    <thead>
+    <tr>
+        <th class="small-col">Buy Price</th>
+        <th class="small-col">Available Qty</th>
+        <th class="small-col">Buy Date</th>
+        <th class="small-col">Sell Details</th>
+    </tr>
+</thead>
+                        <tbody id="sell-portfolio-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+<section id="sec-table" class="tab-content hidden">
+    <!-- হেডার এবং বাটন এক সারিতে দেখানোর জন্য -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;">Trading Ledger & Statement</h3>
+        
+        <!-- 📥 CSV ডাউনলোড বাটন -->
+        <button id="btn-download-csv" onclick="downloadTableAsCSV()" style="background: #10b981; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+            📥 CSV ডাউনলোড
+        </button>
+    </div>
+    
+    <table style="margin-top: 0;">
+        <thead>
+            <tr>
+                <th>Share Name</th>
+                <th>Total Buy Qty</th>
+                <th>Avg Buy ৳</th>
+                <th style="color: #007bff;">Remaining Qty</th> 
+                <th>Current Live ৳</th>
+                <th>Total Return (Unrealized)</th>
+                <th>Sell Qty</th>
+                <th>Sell Price ৳</th>
+                <th>Realized Gain/Loss</th>
+            </tr>
+        </thead>
+        <tbody id="portfolio-table-body"></tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" style="text-align: right; font-weight: bold;">Grand Totals:</td> 
+                <td id="foot-total-unrealized">৳০.০০</td>
+                <td colspan="2"></td>
+                <td id="foot-total-realized">৳০.০০</td>
+            </tr>
+        </tfoot>
+    </table>
+</section>
+
+            <section id="sec-analysis" class="tab-content hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Analysis Stat - Share Ledger</h3>
+                    </div>
+                    <div class="trade-form" style="position: relative; max-width: 400px; margin-bottom: 20px;">
+                        <input type="text" id="analysis-ticker" placeholder="Search Share (e.g. GP, ROBI)" autocomplete="off" style="text-transform: uppercase;">
+                        <div id="analysis-suggestion-box" class="suggestion-list hidden"></div>
+                    </div>
+
+                    <div id="analysis-result-container" class="hidden">
+                        <h4>Analysis Ledger for: <span id="selected-analysis-ticker" style="color: #007bff;">-</span></h4>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Buy Date</th>
+                                        <th>Buy Qty</th>
+                                        <th>Avg Buy ৳</th>
+                                        <th>Sell Qty</th>
+                                        <th>Avg Sell ৳</th>
+                                        <th>Realized G/L</th>
+                                        <th>Remaining Qty</th>
+                                        <th>Current Price ৳</th>
+                                        <th>Unrealized G/L</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analysis-table-body"></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td style="text-align: right; font-weight: bold;">Grand Totals:</td>
+                                        <td colspan="2" style="text-align: left;">
+                                            Rem. Share: <span id="foot-analysis-rem-qty" style="color: #007bff;">0</span>
+                                        </td>
+                                        <td colspan="3" style="text-align: right;">Total Buy Price:</td>
+                                        <td id="foot-analysis-total-cost" style="color: #10b981;">৳০.০০</td>
+                                        <td style="text-align: right;">Avg Buy Price:</td>
+                                        <td id="foot-analysis-avg-price" style="color: #007bff;">৳০.০০</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-statement" class="tab-content hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Share Transaction Statement</h3>
+                    </div>
+                    <div class="trade-form" style="position: relative; max-width: 400px; margin-top: 15px;">
+                        <input type="text" id="statement-ticker" placeholder="Search Share for Ledger (e.g. GP)" autocomplete="off" style="text-transform: uppercase;">
+                        <div id="statement-suggestion-box" class="suggestion-list hidden"></div>
+                    </div>
+
+                    <div id="statement-result-container" class="hidden" style="margin-top: 20px;">
+                        <h4>Statement Ledger for: <span id="selected-statement-ticker" style="color: #007bff;">-</span></h4>
+                        <table style="width: 100%; margin-top: 10px;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>Price ৳</th>
+                                    <th>Total Amount ৳</th>
+                                    <th>Realized Profit ৳</th>
+                                    <th>Running Qty</th>
+                                               </tr>
+                            </thead>
+                            <tbody id="statement-table-body"></tbody>
+                            <tfoot>
+                                <tr>
+                                    <td>Remaining: <span id="foot-stmt-rem-qty" style="color:#007bff;">0</span></td>
+                                    <td>Cost: <span id="foot-stmt-total-buy">৳০.০০</span></td>
+                                    <td>Avg Buy: <span id="foot-stmt-avg-buy">৳০.০০</span></td>
+                                    <td>LTP: <span id="foot-stmt-ltp">৳০.০০</span></td>
+                                    <td colspan="3" style="text-align:right;">Unrealized Gain: <span id="foot-stmt-unrealized">৳০.০০</span></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="ledger-modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0; display:flex; justify-content:between; align-items:center;">
+                Transactions for <span id="modal-ticker-title" style="color:#007bff; margin-left:5px;"></span>
+                <span onclick="closeLedgerModal()" style="cursor:pointer; font-size:20px; margin-left:auto;">&times;</span>
+            </h3>
+            <div id="modal-transaction-list" style="max-height:200px; overflow-y:auto; margin-bottom:15px;"></div>
+            
+            <div id="modal-edit-form" style="display:none; border-top:1px dashed #cbd5e1; padding-top:15px;">
+                <h4 id="edit-form-title" style="margin-top:0; color:#475569;">Edit Entry</h4>
+                <input type="hidden" id="edit-doc-id">
+                <input type="hidden" id="edit-doc-type">
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <div style="flex:1;">
+                        <label style="font-size:11px; font-weight:bold;">Quantity</label>
+                        <input type="number" id="edit-input-qty" style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:4px;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:11px; font-weight:bold;">Price ৳</label>
+                        <input type="number" id="edit-input-price" step="0.01" style="width:100%; padding:6px; border:1px solid #cbd5e1; border-radius:4px;">
+                    </div>
+                </div>
+                <button onclick="saveEditedRecord()" style="background:#10b981; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Update Record</button>
+            </div>
+        </div>
+    </div>
+<!-- 🆕 অ্যাডভান্সড স্টক ডিটেইল মডাল -->
+<!-- 🆕 অ্যাডভান্সড স্টক ডিটেইল মডাল (কার্ড ২×২ গ্রিড) -->
+<div id="advanced-stock-modal" class="modal">
+    <div class="modal-content" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 id="adv-modal-ticker" style="color: #007bff; margin: 0; font-size: 24px;">STOCK NAME</h2>
+            <span onclick="closeAdvancedModal()" style="cursor: pointer; font-size: 32px; line-height: 1;">&times;</span>
+        </div>
+        
+        <!-- 📊 কার্ড গ্রিড - 2x2 লেআউট -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+            
+            <!-- Card 1: LTP + Change -->
+            <div class="adv-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; border-radius: 14px;">
+                <div style="font-size: 12px; opacity: 0.85; margin-bottom: 5px;">LTP (৳)</div>
+                <div style="font-size: 32px; font-weight: bold;" id="adv-ltp">-</div>
+                <div style="font-size: 13px; margin-top: 5px;" id="adv-change">Change: -</div>
+            </div>
+            
+            <!-- Card 2: Previous Close -->
+            <div class="adv-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 16px; border-radius: 14px;">
+                <div style="font-size: 12px; opacity: 0.85; margin-bottom: 5px;">Previous Close (৳)</div>
+                <div style="font-size: 32px; font-weight: bold;" id="adv-prev-close">-</div>
+                <div style="font-size: 12px; margin-top: 5px;" id="adv-prev-date">-</div>
+            </div>
+            
+            <!-- Card 3: My Holdings + Avg Buy -->
+            <div class="adv-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 16px; border-radius: 14px;">
+                <div style="font-size: 12px; opacity: 0.85; margin-bottom: 5px;">My Holdings</div>
+                <div style="font-size: 32px; font-weight: bold;" id="adv-holdings-qty">-</div>
+                <div style="font-size: 12px; margin-top: 5px;">Avg Buy: ৳<span id="adv-avg-buy">-</span></div>
+            </div>
+            
+            <!-- Card 4: Total Gain/Loss -->
+            <div class="adv-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 16px; border-radius: 14px;" id="adv-gain-card">
+                <div style="font-size: 12px; opacity: 0.85; margin-bottom: 5px;">Total Gain/Loss</div>
+                <div style="font-size: 32px; font-weight: bold;" id="adv-gain-amount">-</div>
+                <div style="font-size: 12px; margin-top: 5px;" id="adv-gain-percent">-</div>
+            </div>
+        </div>
+        <!-- 📊 পারফরম্যান্স টেবিল (কার্ডের পরে, চার্টের আগে) -->
+<div style="margin-top: 20px; background: var(--bg-tertiary); border-radius: 12px; overflow: hidden;">
+    <div style="padding: 10px 15px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color);">
+        <span style="font-weight: bold; font-size: 13px;">📈 Performance Summary</span>
+        <span style="font-size: 11px; color: var(--text-muted); margin-left: 10px;">Period-wise return</span>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="modal-performance-table" style="width: 100%; font-size: 12px; border-collapse: collapse;">
             <thead>
-              <tr>
-                <th>তারিখ</th>
-                <th>জমা / পেমেন্ট (খাত)</th>
-                <th>জমার টাকা</th>
-                <th>পেমেন্ট</th>
-                <th>ব্যালেন্স</th>
-              </tr>
+                <tr style="background: var(--bg-secondary);">
+                    <th style="padding: 10px 8px; text-align: center;">Period</th>
+                    <th style="padding: 10px 8px; text-align: center;">Today</th>
+                    <th style="padding: 10px 8px; text-align: center;">5 Days</th>
+                    <th style="padding: 10px 8px; text-align: center;">15 Days</th>
+                    <th style="padding: 10px 8px; text-align: center;">30 Days</th>
+                    <th style="padding: 10px 8px; text-align: center;">3 Months</th>
+                    <th style="padding: 10px 8px; text-align: center;">6 Months</th>
+                    <th style="padding: 10px 8px; text-align: center;">1 Year</th>
+                </tr>
             </thead>
-            <tbody id="ieTableBody"></tbody>
-          </table>
+            <tbody>
+                <tr>
+                    <td style="padding: 10px 8px; text-align: center; font-weight: bold;">Return (%)</td>
+                    <td style="padding: 10px 8px; text-align: center;" id="modal-perf-today">-</td>
+                    <td style="padding: 10px 8px; text-align: center;" id="modal-perf-5d">-</td>
+                    <td style="padding: 10px 8px; text-align: center;" id="modal-perf-15d">-</td>
+                    <td style="padding: 10px 8px; text-align: center;" id="modal-perf-30d">-</td>
+                    <td style="padding: 10px 8px; text-align: center;" id="modal-perf-3m">-</td>
+                    <td style="padding: 10px 8px; text-align: center;" id="modal-perf-6m">-</td>
+                    <td style="padding: 10px 8px; text-align: center;" id="modal-perf-1y">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+        <!-- 📈 প্রাইস হিস্ট্রি চার্ট -->
+        <div style="margin-top: 20px;">
+            <h4 style="margin-bottom: 12px; color: var(--text-primary); font-size: 16px;">📈 Price History (Last 30 Days)</h4>
+            <div style="position: relative; height: 260px; width: 100%;">
+                <canvas id="adv-stock-chart"></canvas>
+            </div>
         </div>
-        <div class="no-print" style="margin-top:20px;">
-          <button onclick="printStatement()" style="background:#16a34a; font-weight:bold;">Download / Print PDF</button>
+        
+        <!-- ⏱️ টাইমস্ট্যাম্প ও ডাটা সোর্স -->
+        <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; font-size: 11px; color: #64748b;">
+            <span>📡 Data source: <span id="adv-data-source">Firebase</span></span>
+            <span>🕐 Updated: <span id="adv-updated-time">-</span></span>
         </div>
-      </div>
     </div>
-
-  </div>
 </div>
-
-<div id="addAccModal" class="modal" style="display:none;">
-  <div class="card">
-    <h3>Add Account</h3>
-    <input id="newAccName" placeholder="Account Name (ডাকনাম)">
-    <input id="newAccNumber" placeholder="Account Number (অফিশিয়াল নম্বর)">
-    <select id="newAccType" style="width:100%; padding:12px; margin-top:10px; border-radius:10px; border:1px solid #ddd;">
-      <option value="Savings">Savings (সঞ্চয়ী অ্যাকাউন্ট)</option>
-      <option value="Fixed Deposit">Fixed Deposit (এফডিআর)</option>
-      <option value="Loan">Loan (ঋণ অ্যাকাউন্ট)</option>
-      <option value="Card">Card (ক্রেডিট/ডেবিট কার্ড)</option>
-      <option value="MFS">MFS (বিকাশ/রকেট/নগদ)</option>
-      <option value="Cash">Cash (নগদ তহবিল)</option>
-    </select>
-    <input id="newAccBalance" type="number" placeholder="Opening Balance">
-    <button onclick="saveNewAccount()">Save</button>
-    <button onclick="closeModal('addAccModal')" style="background:#6b7280; margin-top:5px;">Close</button>
-  </div>
-</div>
-
-<div id="editAccModal" class="modal" style="display:none;">
-  <div class="card">
-    <h3>Rename Account</h3>
-    <p id="editAccCurrentName" style="font-weight:bold; color:#2563eb; margin-bottom:5px;"></p>
-    <input id="editAccNewName" placeholder="New Account Name">
-    <button onclick="updateAccountName()">Update Name</button>
-    <button onclick="closeModal('editAccModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
-  </div>
-</div>
-
-<div id="transModal" class="modal" style="display:none;">
-  <div class="card">
-    <h3 id="modalTitle">Transaction</h3>
-    <input id="transAmount" type="number" placeholder="Amount">
-    <input id="transNote" placeholder="Note">
-    <button onclick="processTransaction()">Confirm</button>
-    <button onclick="closeModal('transModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
-  </div>
-</div>
-
-<div id="transferModal" class="modal" style="display:none;">
-  <div class="card">
-    <h3>Fund Transfer</h3>
-    <label style="font-size: 12px; color:#4b5563; font-weight: bold;">From Account (উৎস):</label>
-    <select id="transferFromAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;"></select>
-    <label style="font-size: 12px; color:#4b5563; font-weight: bold;">To Account (গন্তব্য):</label>
-    <select id="transferToAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;"></select>
-    <input id="transferAmount" type="number" placeholder="Amount">
-    <input id="transferNote" placeholder="Note">
-    <button onclick="processTransfer()">Confirm Transfer</button>
-    <button onclick="closeModal('transferModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
-  </div>
-</div>
-
-<div id="editTransModal" class="modal" style="display:none;">
-  <div class="card">
-    <h3>Edit Transaction</h3>
-    <p id="editTransTarget" style="font-weight:bold; color:#2563eb;"></p>
-    <input id="editTransAmount" type="number" placeholder="Amount">
-    <input id="editTransNote" placeholder="Note">
-    <button onclick="updateTransaction()">Update</button>
-    <button onclick="closeModal('editTransModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
-  </div>
-</div>
-
-<div id="recurringModal" class="modal" style="display:none;">
-  <div class="card">
-    <h3>Recurring Instruction</h3>
-    <select id="recType" onchange="toggleRecurringFields()" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px;">
-      <option value="income">Income</option>
-      <option value="expense">Expense</option>
-      <option value="transfer">Transfer</option>
-    </select>
-    <div id="commonAccField">
-      <select id="recAccId" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px;"></select>
-    </div>
-    <div id="transferFields" style="display:none;">
-      <select id="recFromAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px;"></select>
-      <select id="recToAcc" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px;"></select>
-    </div>
-    <input id="recAmount" type="number" placeholder="Amount">
-    <input id="recNote" placeholder="Note">
-    <input id="recDay" type="number" placeholder="Day">
-    <button onclick="saveRecurringInstruction()">Save</button>
-    <button onclick="closeModal('recurringModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
-  </div>
-</div>
-
-<div id="deleteAuthModal" class="modal" style="display:none;">
-  <div class="card" style="border: 2px solid #dc2626;">
-    <h3 style="color:#dc2626; margin-top:0;">Account মুছে ফেলুন</h3>
-    <p style="font-size:13px; color:#4b5563;">নিরাপত্তার স্বার্থে আপনার বর্তমান পাসওয়ার্ডটি আবার দিন। মনে রাখবেন, এর ফলে আপনার সমস্ত ডেটা চিরতরে ডিলিট হয়ে যাবে!</p>
-    <input id="deleteConfirmPassword" type="password" placeholder="আপনার পাসওয়ার্ড দিন" style="border-color:#dc2626;">
-    <button onclick="executeAccountDeletion()" style="background:#dc2626; font-weight:bold; margin-top:15px;">Permanently Delete Everything</button>
-    <button onclick="closeModal('deleteAuthModal')" style="background:#6b7280; margin-top:5px;">Cancel</button>
-  </div>
-</div>
-
-<script src="firebase-config.js"></script>
-<script src="app.js"></script>
-
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
