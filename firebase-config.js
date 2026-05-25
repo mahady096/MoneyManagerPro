@@ -1,26 +1,18 @@
-// ==========================================
-// ফায়ারবেস কনফিগারেশন
-// ==========================================
-
 const firebaseConfig = {
-  apiKey: "AIzaSyDdPlBysAhWdbJ8KLhwoQaf2Z5EkiYdOUg",
-  authDomain: "my-share-market-495aa.firebaseapp.com",
-  projectId: "my-share-market-495aa",
-  storageBucket: "my-share-market-495aa.firebasestorage.app",
-  messagingSenderId: "1022913056078",
-  appId: "1:1022913056078:web:bcc317b13a880382d2221f",
-  measurementId: "G-Z3J503NM5E"
+  apiKey: "AIzaSyD270ztR27nGQphS4__1RY9DRw6auYXpv0",
+  authDomain: "pro-wallet-7b19a.firebaseapp.com",
+  projectId: "pro-wallet-7b19a",
+  storageBucket: "pro-wallet-7b19a.firebasestorage.app",
+  messagingSenderId: "674235026651",
+  appId: "1:674235026651:web:2393c7a8ce943c43c990fe",
+  measurementId: "G-RN3T34K22L"
+
 };
 
-// ফায়ারবেস ইনিশিয়ালাইজেশন
-firebase.initializeApp(firebaseConfig);
+// ফায়ারবেস ইনিশিয়ালাইজ করা (এটি না থাকলে এরর আসবে)
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
-// গ্লোবাল ভেরিয়েবল
 const auth = firebase.auth();
 const db = firebase.firestore();
-
-// Firestore সেটিংস
-// পুরনো সেটিংস রেখে নতুন যোগ করা
-db.settings({ timestampsInSnapshots: true, merge: true });
-
-console.log("✅ Firebase initialized successfully");
